@@ -6,7 +6,7 @@ from tkinter import * #for the GUI
 #Setting some variables
 EPOCHS = 100 #Amount of times to iterate over the training data.
 
-class ProseDataset(Dataset):
+class SentenceDataset(Dataset):
     def __init__(self, file_path, label_path, transform=None,target_transform=None):
         pandas.options.display.max_rows = 100 #Panda's default is 60
         try:
@@ -22,12 +22,12 @@ class ProseDataset(Dataset):
     def __getitem__(self, idx):
         return torch.from_numpy(self.data.iloc[idx].astype(numpy.float32).to_numpy()), self.labels.iloc[idx, 0] #Returns an array with one data entry and an integer representing its label.
 
-training_data = ProseDataset(
+training_data = SentenceDataset(
     file_path="data.csv",
     label_path = "data_labels.csv"
 )
 
-test_data = ProseDataset(
+test_data = SentenceDataset(
     file_path="test.csv",
     label_path = "test_labels.csv"
 )
