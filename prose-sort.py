@@ -1,39 +1,65 @@
-import torch, numpy, pandas
+import torch, numpy, pandas, sklearn
 from torch import nn 
 from torch.utils.data import Dataset, DataLoader
 from tkinter import * #for the GUI
+from sklearn import preprocessing
 
 #Setting some variables
 EPOCHS = 100 #Amount of times to iterate over the training data.
+word_len = 20
 
 class SentenceDataset(Dataset):
     def __init__(self, file_path, label_path, transform=None,target_transform=None):
         pandas.options.display.max_rows = 100 #Panda's default is 60
         try:
-            self.data = pandas.read_csv(file_path)
-            self.labels = pandas.read_csv(label_path)
-        except:
-            print("Cannot read or write to %s",file_path)
+            #self.data = pandas.read_csv(file_path)
+            data_textlines = open(file_path, 'r', encoding='utf-8').read().splitlines()
+            label_textlines = open(label_path, 'r', encoding='utf-8').read().splitlines()
+            data_floats = list()
+            #label_loats = list()
+            for item in data_textlines:
+                float_array = [numpy.float32(0)]*word_len
+                word_index = 0 
+                for word in item.split(' '):
+                    hashed_word = numpy.float32(0) 
+                    indexe = 0
+                    expo = 1
+                    for letter in word: #'toy' hashing function
+                        hashed_word = hashed_word + numpy.float32(ord(letter)*expo)
+                        expo = expo*10
+                        indexe = indexe + 1
+                    if (word_index < word_len):
+                        float_array[word_index] = hashed_word #word added to sentense
+                    word_index = word_index + 1
+                data_floats.append(float_array) #sentense is converted to list of floats.
+            #for item in label_textlines:
+            #    label_floats.append(float(item))
+            self.data = torch.as_tensor(data_floats)
+            self.labels = torch.as_tensor(preprocessing.LabelEncoder().fit_transform(label_textlines))
+        except Exception as e:
+            #print("Cannot read or write to %s",file_path)
+            print(e)
             exit()
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        return torch.from_numpy(self.data.iloc[idx].astype(numpy.float32).to_numpy()), self.labels.iloc[idx, 0] #Returns an array with one data entry and an integer representing its label.
+        #return torch.from_numpy(self.data.iloc[idx].astype(numpy.float32).to_numpy()), self.labels.iloc[idx, 0]
+        return self.data[idx], self.labels[idx] #Returns an array with one data entry and an integer representing its label.
 
 training_data = SentenceDataset(
-    file_path="data.csv",
-    label_path = "data_labels.csv"
+    file_path="data.txt",
+    label_path = "data_labels.txt"
 )
 
 test_data = SentenceDataset(
-    file_path="test.csv",
-    label_path = "test_labels.csv"
+    file_path="test.txt",
+    label_path = "test_labels.txt"
 )
 
 #Two variables that must be defined after we verify that data.csv and test.csv are loaded.
-data_len = len(pandas.read_csv("data.csv").iloc[0]) #The amount of rows in the CSV file, representing the number of entries of the training data.
+data_len = len(open("data.txt", 'r', encoding='utf-8').read().splitlines()) #The amount of rows in the CSV file, representing the number of entries of the training data.
 batch_size = (data_len // 4) + 1 #The size of the batch of each epoch. Should sacle with the size of the data; I would consider hard coding this to 5.
 
 # Data loaders prototyped from PyTorch.
@@ -48,11 +74,11 @@ class NeuralNetwork(nn.Module):
         super().__init__()
         self.flatten = nn.Flatten(start_dim = 0, end_dim = 0)
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(data_len, 128), #Sends each column of the batch number's row to 64 input neurons in a linear layer.
+            nn.Linear(word_len, 128), #Sends each column of the batch number's row to 64 input neurons in a linear layer.
             nn.ReLU(),
             nn.Linear(128, 128),
             nn.ReLU(),
-            nn.Linear(128, 6) #The output neurons here represent labels.
+            nn.Linear(128, 7) #The output neurons here represent labels.
         )
 
     def forward(self, x):
