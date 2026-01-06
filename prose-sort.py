@@ -2,7 +2,9 @@ import torch, numpy, pandas, sklearn
 from torch import nn 
 from torch.utils.data import Dataset, DataLoader
 from tkinter import * #for the GUI
-from sklearn import preprocessing
+
+#categories_2 = {"Happy":numpy.float32(0), "Sad":numpy.float32(1), "Angry":numpy.float32(2), "Informative":numpy.float32(3), "Nonsense":numpy.float32(4), "Funny":numpy.float32(5)} 
+categories_2 = {"Happy":0, "Sad":1, "Angry":2, "Informative":3, "Nonsense":4, "Funny":5} #The hard coded results of output. This dict will convert to a list in testing. #The hard coded results of output. This dict will convert to a list in testing.
 
 #Setting some variables
 EPOCHS = 100 #Amount of times to iterate over the training data.
@@ -32,10 +34,13 @@ class SentenceDataset(Dataset):
                         float_array[word_index] = hashed_word #word added to sentense
                     word_index = word_index + 1
                 data_floats.append(float_array) #sentense is converted to list of floats.
+            labels_floats = list()
+            for item in label_textlines:
+                labels_floats.append(categories_2[item])
             #for item in label_textlines:
             #    label_floats.append(float(item))
             self.data = torch.as_tensor(data_floats)
-            self.labels = torch.as_tensor(preprocessing.LabelEncoder().fit_transform(label_textlines))
+            self.labels = torch.as_tensor(labels_floats)
         except Exception as e:
             #print("Cannot read or write to %s",file_path)
             print(e)
@@ -74,11 +79,11 @@ class NeuralNetwork(nn.Module):
         super().__init__()
         self.flatten = nn.Flatten(start_dim = 0, end_dim = 0)
         self.linear_relu_stack = nn.Sequential(
-            nn.Linear(word_len, 128), #Sends each column of the batch number's row to 64 input neurons in a linear layer.
+            nn.Linear(word_len, 64), #Sends each column of the batch number's row to 64 input neurons in a linear layer.
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(64, 64),
             nn.ReLU(),
-            nn.Linear(128, 7) #The output neurons here represent labels.
+            nn.Linear(64, 6) #The output neurons here represent labels.
         )
 
     def forward(self, x):
@@ -147,7 +152,7 @@ print("Completd training. Saving to neural_net.pth.")
 torch.save(model.state_dict(), "neural_net.pth")
 print("Saved PyTorch Model State to neural_net.pth.")
 
-categories = ["Happy", "Sad", "Angry", "Informative", "Nonsense", "Funny"] #The hard coded results of output.
+categories = ["Happy", "Sad", "Angry", "Informative", "Nonsense", "Funny"]
 
 #This next block uses the tkinter library to create a GUI.
 main_window = Tk(screenName=None, baseName=None, className=' Result', useTk=1)
